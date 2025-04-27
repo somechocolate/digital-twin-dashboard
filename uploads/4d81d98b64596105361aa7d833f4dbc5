@@ -1,0 +1,344 @@
+import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import rehypeHighlight from 'rehype-highlight'
+import TestingTab from './TestingTab'
+
+
+const initialFeatures = [
+  { title: 'Apify Slack Notify bei Erfolg', status: 'In Dev', prio: 'Hoch', risk: 'Mittel', complexity: 'Mittel', targetDate: '2025-04-30' },
+  { title: 'JWT-basierter Tableau Embed', status: 'Abgeschlossen', prio: 'Hoch', risk: 'Hoch', complexity: 'Hoch', targetDate: '2025-04-20' }
+]
+
+function SystemOverview() {
+  const mermaidCode = `graph TD
+    A[Frontend] -->|auth| B[Supabase]
+    A --> C[Tableau Embed]
+    A --> D[n8n orchestriert]
+    D --> E[Apify Scraper]
+    D --> F[Alerts + Slack]
+    B --> G[Postgres DB]
+  `
+
+  const components = [
+    { name: 'Frontend (React)', status: '✅', lastUpdate: '2025-04-24', description: 'React-UI mit Tailwind, Auth & GPT-Interface' },
+    { name: 'n8n Orchestrierung', status: '🟡', lastUpdate: '2025-04-22', description: 'Flow-Logik für API-Calls, Alerts, Scraper' },
+    { name: 'Supabase (DB/Auth)', status: '✅', lastUpdate: '2025-04-20', description: 'Multi-Tenant DB + JWT Auth mit RLS' },
+    { name: 'Apify Scraper', status: '🟠', lastUpdate: '2025-04-18', description: 'Actors für Wettbewerberdaten' },
+    { name: 'Tableau Embed', status: '✅', lastUpdate: '2025-04-21', description: 'Nutzergefiltertes Dashboard via JWT-Trust' },
+    { name: 'Slack Alerts', status: '🟢', lastUpdate: '2025-04-23', description: 'n8n → Slack Webhook für Statusmeldungen' }
+  ]
+
+  return (
+    <div className="bg-white p-4 rounded shadow space-y-6">
+      <div>
+        <h2 className="font-bold text-xl mb-2">🧭 Systemarchitektur (Mermaid)</h2>
+        <pre className="bg-gray-100 text-xs p-3 rounded whitespace-pre overflow-x-auto">
+          <code>{mermaidCode}</code>
+        </pre>
+        <p className="text-sm text-gray-500 mt-1">(Mermaid live render kommt in späterer Ausbaustufe)</p>
+      </div>
+
+      <div>
+        <h3 className="font-bold text-lg mb-2">📦 Komponentenstatus</h3>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left border-b">
+              <th>Komponente</th>
+              <th>Status</th>
+              <th>Letztes Update</th>
+              <th>Beschreibung</th>
+            </tr>
+          </thead>
+          <tbody>
+            {components.map((c, i) => (
+              <tr key={i} className="border-b">
+                <td>{c.name}</td>
+                <td>{c.status}</td>
+                <td>{c.lastUpdate}</td>
+                <td>{c.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+const initialChangelog = [
+  {
+    timestamp: '2025-04-24 14:00',
+    source: 'GPT',
+    type: 'Feature Update',
+    message: 'Feature „JWT-basierter Tableau Embed“ wurde auf Status „Abgeschlossen“ gesetzt.',
+    relatedComponent: 'Tableau Embed'
+  },
+  {
+    timestamp: '2025-04-23 17:30',
+    source: 'Manuell',
+    type: 'System Update',
+    message: 'Neue Apify Scraper-Schnittstelle implementiert.',
+    relatedComponent: 'Apify Scraper'
+  }
+]
+
+function ChangelogTab({ changelog }) {
+  return (
+    <div className="bg-white p-4 rounded shadow space-y-6">
+      <h2 className="font-bold text-xl mb-4">📜 Changelog</h2>
+      <ul className="space-y-4">
+        {changelog
+          .slice()
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .map((log, index) => (
+            <li key={index} className="border-l-4 border-blue-600 pl-4">
+              <p className="text-xs text-gray-400">{log.timestamp} · {log.source} · {log.type}</p>
+              <p className="text-sm mt-1">{log.message}</p>
+              <p className="text-xs text-gray-500">Komponente: {log.relatedComponent}</p>
+            </li>
+          ))}
+      </ul>
+    </div>
+  )
+}
+
+function FeatureMatrix({ features, updateFeature }) {
+  return (
+    <div className="bg-white rounded shadow p-4 space-y-4">
+      <h2 className="font-bold text-xl mb-2">🧩 Feature-Matrix</h2>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left border-b">
+            <th>Feature</th>
+            <th>Status</th>
+            <th>Prio</th>
+            <th>Risiko</th>
+            <th>Komplexität</th>
+            <th>Zieldatum</th>
+          </tr>
+        </thead>
+        <tbody>
+          {features.map((f, i) => (
+            <tr key={i} className="border-b">
+              <td>{f.title}</td>
+              <td>
+                <select value={f.status} onChange={(e) => updateFeature(i, 'status', e.target.value)}>
+                  <option>Geplant</option>
+                  <option>In Dev</option>
+                  <option>Abgeschlossen</option>
+                </select>
+              </td>
+              <td>
+                <select value={f.prio} onChange={(e) => updateFeature(i, 'prio', e.target.value)}>
+                  <option>Niedrig</option>
+                  <option>Mittel</option>
+                  <option>Hoch</option>
+                </select>
+              </td>
+              <td>
+                <select value={f.risk} onChange={(e) => updateFeature(i, 'risk', e.target.value)}>
+                  <option>Niedrig</option>
+                  <option>Mittel</option>
+                  <option>Hoch</option>
+                </select>
+              </td>
+              <td>
+                <select value={f.complexity} onChange={(e) => updateFeature(i, 'complexity', e.target.value)}>
+                  <option>Niedrig</option>
+                  <option>Mittel</option>
+                  <option>Hoch</option>
+                </select>
+              </td>
+              <td>
+                <input
+                  type="date"
+                  className="border px-2 py-1 rounded"
+                  value={f.targetDate}
+                  onChange={(e) => updateFeature(i, 'targetDate', e.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ChatTab({ chatHistory, setChatHistory, onSendMessage, onUpload }) {
+  const [input, setInput] = useState('')
+
+  const handleSend = async () => {
+    if (!input.trim()) return
+    const userMessage = { role: 'user', content: input }
+    setChatHistory([...chatHistory, userMessage])
+    setInput('')
+    await onSendMessage(userMessage)
+  }
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    await onUpload(file)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="h-96 overflow-y-auto bg-white rounded p-4 shadow text-sm">
+        {chatHistory.map((msg, i) => (
+          <div key={i} className={`mb-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+            <div className="inline-block bg-gray-100 p-2 rounded max-w-xl text-left whitespace-pre-wrap">
+              <strong>{msg.role === 'user' ? 'Du' : 'GPT'}:</strong>
+              <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                {msg.content}
+              </ReactMarkdown>
+
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          className="flex-1 border px-3 py-2 rounded"
+          placeholder="Frage stellen oder Code besprechen..."
+        />
+        <button onClick={handleSend} className="bg-blue-600 text-white px-4 rounded">
+          Senden
+        </button>
+        <label className="cursor-pointer bg-gray-200 px-3 py-2 rounded">
+          📎
+          <input type="file" hidden onChange={handleUpload} />
+        </label>
+      </div>
+    </div>
+  )
+}
+
+export default function GPTDashboard() {
+  const [prompt, setPrompt] = useState('')
+  const [response, setResponse] = useState({ code: '', summary: '', timeline: '' })
+  const [features, setFeatures] = useState(initialFeatures)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('system')
+  const [chatHistory, setChatHistory] = useState([])
+  const [changelog, setChangelog] = useState(initialChangelog)
+  const [pendingLogs, setPendingLogs] = useState([])
+  const [uploadingFile, setUploadingFile] = useState(null)
+  const initialTests = [
+    {
+      feature: 'JWT-basierter Tableau Embed',
+      type: 'Functional',
+      status: 'Pending',
+      description: 'Validiert das Einbetten eines Tableau-Dashboards via JWT-Token.',
+      lastRun: null
+    },
+    {
+      feature: 'Slack Notification bei Erfolg',
+      type: 'Notification',
+      status: 'Pending',
+      description: 'Testet die Benachrichtigung bei erfolgreicher Ausführung eines n8n-Flows.',
+      lastRun: null
+    }
+  ]
+  const [tests, setTests] = useState(initialTests)
+
+   const handleUserConfirmation = (userInput) => {
+       if (pendingLogs.length === 0) return
+       const normalized = userInput.trim().toLowerCase()
+    
+       if (['✅','ja','yes'].includes(normalized)) {
+         const confirmed = pendingLogs[0]
+         setChangelog(prev => [confirmed, ...prev])
+         setPendingLogs(prev => prev.slice(1))
+         setChatHistory(prev => [...prev, { role: 'assistant', content: '✅ Log gespeichert.' }])
+       } else if (['❌','nein','no'].includes(normalized)) {
+         setPendingLogs(prev => prev.slice(1))
+         setChatHistory(prev => [...prev, { role: 'assistant', content: '❌ Vorschlag verworfen.' }])
+       }
+     }
+
+  const updateFeature = (index, key, value) => {
+    const updated = [...features]
+    updated[index][key] = value
+    setFeatures(updated)
+  }
+
+  const onSendMessage = async (userMessage) => {
+    const input = userMessage.content.trim()
+
+    // Falls der Nutzer auf eine Log-Bestätigung antwortet
+    if (['✅', '❌', 'ja', 'nein', 'yes', 'no'].includes(input.toLowerCase())) {
+      handleUserConfirmation(input)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/gpt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: input })
+      })
+      const data = await res.json()
+      const gptMessage = { role: 'assistant', content: data.summary }
+
+      setChatHistory((prev) => [...prev, gptMessage])
+
+      // 🧠 GPT hat Log-Vorschlag direkt mitgeliefert?
+      if (data.logSuggestion) {
+        setPendingLogs(prev => [...prev, data.logSuggestion])
+
+        setChatHistory((prev) => [
+          ...prev,
+          { role: 'assistant', content: `📜 GPT schlägt vor: „${data.logSuggestion.message}“\nLog übernehmen? ✅ / ❌` }
+        ])
+      }
+
+    } catch (err) {
+      setChatHistory((prev) => [...prev, { role: 'assistant', content: 'Fehler beim Senden: ' + err.message }])
+    }
+  }
+  
+  {uploadingFile && (
+    <p className="text-xs text-gray-500 mt-1">📤 {uploadingFile} wird hochgeladen …</p>
+  )}
+
+  const onUpload = async (file) => {
+    setUploadingFile(file.name)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+      const data = await res.json()
+      const fileMsg = { role: 'assistant', content: data.summary }
+      setChatHistory((prev) => [...prev, { role: 'user', content: `📎 ${file.name}` }, fileMsg])
+    } catch (err) {
+      setChatHistory((prev) => [...prev, { role: 'assistant', content: 'Upload fehlgeschlagen: ' + err.message }])
+    } finally {
+      setUploadingFile(null)
+    }
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex gap-2">
+        <button onClick={() => setActiveTab('chat')} className={activeTab === 'chat' ? 'underline' : ''}>💬 Chat</button>
+        <button onClick={() => setActiveTab('system')} className={activeTab === 'system' ? 'underline' : ''}>🧭 Systemübersicht</button>
+        <button onClick={() => setActiveTab('features')} className={activeTab === 'features' ? 'underline' : ''}>🧩 Feature-Matrix</button>
+        <button onClick={() => setActiveTab('testing')} className={activeTab === 'testing' ? 'underline' : ''}>🧪 Testing</button>
+        <button onClick={() => setActiveTab('changelog')} className={activeTab === 'changelog' ? 'underline' : ''}>📜 Changelog</button>
+      </div>
+
+      {activeTab === 'system' && <SystemOverview />}
+      {activeTab === 'features' && <FeatureMatrix features={features} updateFeature={updateFeature} />}
+      {activeTab === 'chat' && <ChatTab chatHistory={chatHistory} setChatHistory={setChatHistory} onSendMessage={onSendMessage} onUpload={onUpload} />}
+      {activeTab === 'changelog' && <ChangelogTab changelog={changelog} />}
+      {activeTab === 'testing' && <TestingTab tests={tests} setTests={setTests} />}
+    </div>
+  )
+}
