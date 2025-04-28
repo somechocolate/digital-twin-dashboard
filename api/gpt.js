@@ -1,4 +1,4 @@
-// Datei: src/pages/api/gpt.js
+// Datei: /api/gpt.js
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -27,11 +27,10 @@ export default async function handler(req, res) {
       const data = await response.json();
       const summary = data.choices?.[0]?.message?.content || '';
   
-      return res.status(200).json({ summary });
-  
-    } catch (error) {
-      console.error('Fehler in /api/gpt:', error);
-      return res.status(500).json({ error: 'Server Error' });
+      res.status(200).json({ summary });
+    } catch (err) {
+      console.error('Error in /api/gpt:', err);
+      res.status(500).json({ error: 'Server Error' });
     }
   }
   
