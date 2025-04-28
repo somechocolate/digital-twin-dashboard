@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTwin } from '../context/TwinContext'
 import supabase from '../lib/supabaseClient'
-import ChangelogEditor from '../components/domain/ChangelogEditor'
+import ChangelogTab from '../components/domain/ChangelogTab'
 
 export default function ChangelogPage() {
   const { state, dispatch } = useTwin()
@@ -50,11 +50,6 @@ export default function ChangelogPage() {
   }
 
   return (
-    <ChangelogEditor
-      changelog={state.changelog}
-      onAdd={onAddLog}
-      onUpdate={onUpdateLog}
-      onDelete={onDeleteLog}
-    />
+    <ChangelogTab />
   )
 }
