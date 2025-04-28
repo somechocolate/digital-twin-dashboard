@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TwinProvider } from './context/TwinContext';
 import Tabs from './components/common/Tabs';
 import ModeBadge from './components/common/ModeBadge';
+import DeltaPanel from './components/common/DeltaPanel';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 
@@ -21,6 +22,8 @@ export default function App() {
                     <Tabs />
                     <ModeBadge />
                 </header>
+
+                <DeltaPanel />
 
                 <main className="p-4">
                     <ErrorBoundary>

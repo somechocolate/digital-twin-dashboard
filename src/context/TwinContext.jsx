@@ -16,6 +16,10 @@ const initial = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'CLEAR_DELTA':
+      return { ...state, pendingDelta: null };
+    case 'PUSH_CHANGELOG':
+      return { ...state, changelog: [ action.entry, ...state.changelog ] };
     case 'SET_MODE':
       return { ...state, mode: action.payload }
     case 'SET_FEATURES':
