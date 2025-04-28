@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTwin } from '../context/TwinContext'
-import supabase from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient'
 import TestingTab from '../components/domain/TestingTab'
 
 export default function TestingPage() {

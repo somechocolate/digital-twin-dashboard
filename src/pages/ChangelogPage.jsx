@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTwin } from '../context/TwinContext'
-import supabase from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient'
 import ChangelogTab from '../components/domain/ChangelogTab'
 
 export default function ChangelogPage() {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTwin } from '../context/TwinContext'
-import supabase from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient'
 import SystemOverview from '../components/domain/SystemOverview'
 
 export default function SystemPage() {

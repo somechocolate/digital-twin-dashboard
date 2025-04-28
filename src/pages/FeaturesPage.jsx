@@ -1,6 +1,6 @@
 // src/pages/FeaturesPage.jsx
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { supabase }  from '../lib/supabaseClient'
 import FeatureMatrix from '../components/domain/FeatureMatrix'
 
 export default function FeaturesPage() {
