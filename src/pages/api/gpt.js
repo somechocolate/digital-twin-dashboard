@@ -1,4 +1,4 @@
-// Datei: /pages/api/gpt.js
+// Datei: src/pages/api/gpt.js
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
