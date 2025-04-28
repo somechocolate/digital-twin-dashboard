@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTwin } from '../context/TwinContext'
 import supabase from '../lib/supabaseClient'
-import SystemEditor from '../components/domain/SystemEditor'
+import SystemOverview from '../components/domain/SystemOverview'
 
 export default function SystemPage() {
   const { state, dispatch } = useTwin()
@@ -47,10 +47,6 @@ export default function SystemPage() {
   }
 
   return (
-    <SystemEditor
-      components={state.systemComponents}
-      onSave={onSaveComponent}
-      onDelete={onDeleteComponent}
-    />
+    <SystemOverview />
   )
 }
