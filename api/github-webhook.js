@@ -6,8 +6,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Supabase Admin-Client (Service-Role-Key)
 const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KE
 )
 
 // Deaktiviere den Body-Parser, damit wir den Raw-Body holen können
