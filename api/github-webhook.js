@@ -4,17 +4,15 @@ import { buffer } from 'micro'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase-Admin (Service Role Key)
+// Supabase Admin-Client (Service-Role-Key)
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// Für Next.js API-Routen deaktivieren wir JSON-Parsing
+// Deaktiviere den Body-Parser, damit wir den Raw-Body holen können
 export const config = {
-  api: {
-    bodyParser: false
-  }
+  api: { bodyParser: false }
 }
 
 export default async function handler(req, res) {
@@ -22,24 +20,44 @@ export default async function handler(req, res) {
     return res.status(405).send('Method Not Allowed')
   }
 
-  // 1) Raw Body einlesen
+  // 1) Raw-Body einlesen
   const buf = await buffer(req)
   const payloadRaw = buf.toString()
 
-  // 2) HMAC prüfen
-  const secret = process.env.GITHUB_WEBHOOK_SECRET
-  const signature = req.headers['x-hub-signature-256'] || ''
-  const hmac = crypto.createHmac('sha256', secret).update(payloadRaw).digest('hex')
-  const expected = `sha256=${hmac}`
+  // 2) Lese beide Header (sha1 + sha256)
+  const sigSha256 = req.headers['x-hub-signature-256']
+  const sigSha1   = req.headers['x-hub-signature']
 
-  // Timing-safe compare
-  const sigBuf = Buffer.from(signature)
-  const expBuf = Buffer.from(expected)
-  if (!signature || sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+  // 3) Berechne hmac-sha1 & sha256
+  const secret = process.env.GITHUB_WEBHOOK_SECRET || ''
+  const hmac256 = crypto.createHmac('sha256', secret).update(payloadRaw).digest('hex')
+  const hmac1   = crypto.createHmac('sha1',   secret).update(payloadRaw).digest('hex')
+
+  const expected256 = `sha256=${hmac256}`
+  const expected1   = `sha1=${hmac1}`
+
+  // 4) Debug-Logs für Signature
+  console.log('GitHub Signature-256:', sigSha256, ' expected256:', expected256)
+  console.log('GitHub Signature(sha1):', sigSha1,   ' expected1:',   expected1)
+
+  // 5) Timing-safe Compare je nachdem, welcher Header gesetzt ist
+  let valid = false
+  if (sigSha256) {
+    const sigBuf = Buffer.from(sigSha256)
+    const expBuf = Buffer.from(expected256)
+    valid = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)
+  } else if (sigSha1) {
+    const sigBuf = Buffer.from(sigSha1)
+    const expBuf = Buffer.from(expected1)
+    valid = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)
+  }
+
+  if (!valid) {
+    console.error('Invalid signature, aborting')
     return res.status(401).json({ error: 'Invalid signature' })
   }
 
-  // 3) JSON parsen
+  // 6) JSON parsen
   let payload
   try {
     payload = JSON.parse(payloadRaw)
@@ -50,12 +68,12 @@ export default async function handler(req, res) {
   const eventType = req.headers['x-github-event'] || 'unknown'
 
   try {
-    // 4) Logge ins GitHub-Events-Log
+    // 7) Roh-Event loggen
     await supabaseAdmin
       .from('github_events')
       .insert([{ event_type: eventType, payload }])
 
-    // 5) Schreibe Changelog-Entry (für AI-Optimierung)
+    // 8) Changelog-Entry anlegen
     await supabaseAdmin
       .from('changes')
       .insert([{
