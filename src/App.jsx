@@ -38,7 +38,6 @@ export default function App() {
                                 <Route path="/testing" element={<TestingPage />} />
                                 <Route path="/changelog" element={<ChangelogPage />} />
                                 <Route path="*" element={<Navigate to="/features" replace />} />
-                                <Route path="/next" element={<NextUp />} />
                             </Routes>
                         </Suspense>
                     </ErrorBoundary>
