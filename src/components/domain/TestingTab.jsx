@@ -1,14 +1,13 @@
+// File: src/components/domain/TestingTab.jsx
 import React from 'react'
 
-export default function TestingTab({ tests, onAdd, onUpdate, onDelete }) {
+export default function TestingTab({ tests, onUpdate }) {
   const updateStatus = (index, newStatus) => {
-    const copy = [...tests]
-    copy[index] = {
-      ...copy[index],
+    const testItem = tests[index]
+    onUpdate(testItem.id, {
       status: newStatus,
       lastRun: new Date().toISOString(),
-    }
-    setTests(copy)
+    })
   }
 
   return (
@@ -27,31 +26,18 @@ export default function TestingTab({ tests, onAdd, onUpdate, onDelete }) {
         </thead>
         <tbody>
           {tests.map((t, i) => (
-            <tr key={i} className="border-b">
+            <tr key={t.id || i} className="border-b">
               <td>{t.feature}</td>
               <td>{t.type}</td>
               <td>{t.status}</td>
               <td>{t.description}</td>
-              <td>{t.lastRun ? new Date(t.lastRun).toLocaleString() : '-'}</td>
+              <td className="text-xs text-gray-600">
+                {t.lastRun ? new Date(t.lastRun).toLocaleString() : '-'}
+              </td>
               <td className="space-x-1">
-                <button
-                  onClick={() => updateStatus(i, 'Pass')}
-                  className="text-green-600"
-                >
-                  ✅
-                </button>
-                <button
-                  onClick={() => updateStatus(i, 'Fail')}
-                  className="text-red-500"
-                >
-                  ❌
-                </button>
-                <button
-                  onClick={() => updateStatus(i, 'Pending')}
-                  className="text-gray-500"
-                >
-                  ⏳
-                </button>
+                <button onClick={() => updateStatus(i, 'Pass')} className="text-green-600">✅</button>
+                <button onClick={() => updateStatus(i, 'Fail')} className="text-red-500">❌</button>
+                <button onClick={() => updateStatus(i, 'Pending')} className="text-gray-500">⏳</button>
               </td>
             </tr>
           ))}
