@@ -1,7 +1,7 @@
 // src/pages/ChatPage.jsx
 import React, { useState, useContext } from 'react';
 import { useTwin } from '../context/TwinContext';
-import { handler } from '../api/gpt';
+import { askGPT } from '../api/gpt';
 import { supabase } from '../lib/supabaseClient';
 import Chat from '../components/domain/Chat';
 
@@ -74,7 +74,7 @@ export default function ChatPage() {
     // Standard-Flow: Anfrage an GPT
     try {
       const { eventDetected, eventType, data, chatResponse } =
-        await handler(text, state.chat);
+        await askGPT(text, state.chat);
 
       dispatch({
         type: 'PUSH_CHAT',
