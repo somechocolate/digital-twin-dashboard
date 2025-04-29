@@ -110,9 +110,11 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="chat-container">
-      {/* … dein bestehendes UI … */}
-      <Chat onSend={send} />
-    </div>
+    <Chat
+    chatHistory={state.chat}
+    onSendMessage={send}
+    onUpload={upload}
+    uploadingFile={state.uploading}
+  />
   );
 }
