@@ -3,6 +3,7 @@ import React, { useState, useContext } from 'react';
 import { useTwin } from '../context/TwinContext';
 import { askGPT } from '../api/gpt';
 import { supabase } from '../lib/supabaseClient';
+import Chat from '../components/domain/Chat';
 
 export default function ChatPage() {
   const { state, dispatch } = useTwin();
@@ -111,7 +112,7 @@ export default function ChatPage() {
   return (
     <div className="chat-container">
       {/* … dein bestehendes UI … */}
-      <ChatInput onSend={send} />
+      <Chat onSend={send} />
     </div>
   );
 }
