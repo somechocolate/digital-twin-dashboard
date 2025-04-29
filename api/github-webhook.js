@@ -94,7 +94,7 @@ export default async function handler(req, res) {
  try {
   const eventType = req.headers['x-github-event'] || 'unknown'
   console.log('→ Logging GitHub event:', eventType)
-  await supabaseAdmin.from('github_events').insert([{ event_type:eventType, payload:JSON.parse(payloadRaw) }])
+  await supabaseAdmin.from('github_events').insert([{ eventType, payload:JSON.parse(payloadRaw) }])
   await supabaseAdmin.from('changes').insert([{ source:'github', type:eventType, message:`GitHub Event: ${eventType}`, relatedComponentId:null }])
   return res.status(200).json({ received: true })
 } catch (err) {
