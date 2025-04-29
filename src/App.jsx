@@ -4,7 +4,7 @@ import Tabs from './components/common/Tabs';
 import ModeBadge from './components/common/ModeBadge';
 import DeltaPanel from './components/common/DeltaPanel';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import NextUp from './components/domain/NextUp';
+import NextUpPanel from './components/common/NextUpPanel';  // ← hier
 
 
 import React, { Suspense, lazy } from 'react';
@@ -25,6 +25,7 @@ export default function App() {
                 </header>
 
                 <DeltaPanel />
+                <NextUpPanel />     {/* ← NextUp als unabhängiges Panel */}
 
                 <main className="p-4">
                     <ErrorBoundary>

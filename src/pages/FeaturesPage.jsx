@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FeatureMatrix from '../components/domain/FeatureMatrix'
-import NextUp from '../components/domain/NextUp';  // ← import NextUp
 
 export default function FeaturesPage() {
   const [features, setFeatures] = useState([])
@@ -63,19 +62,14 @@ export default function FeaturesPage() {
     <div>
       {loading
         ? <p>Loading…</p>
-        : <>
-          <FeatureMatrix
-            features={features}
-            updateFeature={(idx, key, value) => {
-              // Map index → Objekt → Feld setzen → per upsert speichern
-              const f = features[idx]
-              const updated = { ...f, [key]: value }
-              handleUpsertFeature(updated)
-            }} />
-          <div className="mt-6">
-            <NextUp />           {/* ← NextUp hier einbetten */}
-          </div>
-        </>
+        : <FeatureMatrix
+          features={features}
+          updateFeature={(idx, key, value) => {
+            // Map index → Objekt → Feld setzen → per upsert speichern
+            const f = features[idx]
+            const updated = { ...f, [key]: value }
+            handleUpsertFeature(updated)
+          }} />
       }
     </div>
   );
