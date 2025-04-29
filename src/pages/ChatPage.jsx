@@ -1,11 +1,11 @@
 // src/pages/ChatPage.jsx
 import React, { useState, useContext } from 'react';
-import { TwinContext } from '../context/TwinContext';
+import { useTwin } from '../context/TwinContext';
 import { askGPT } from '../api/gpt';
 import { supabase } from '../lib/supabaseClient';
 
 export default function ChatPage() {
-  const { state, dispatch } = useContext(TwinContext);
+  const { state, dispatch } = useTwin();
   const [pendingEvent, setPendingEvent] = useState(null);
 
   const send = async (text) => {

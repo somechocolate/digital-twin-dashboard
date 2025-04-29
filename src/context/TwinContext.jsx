@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'  // <-- ggf. Pfad anpassen
 
-const TwinContext = createContext()
+export const TwinContext = createContext()
 export const useTwin = () => useContext(TwinContext)
 
 const initialState = {
