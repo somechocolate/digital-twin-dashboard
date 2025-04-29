@@ -4,6 +4,7 @@ import Tabs from './components/common/Tabs';
 import ModeBadge from './components/common/ModeBadge';
 import DeltaPanel from './components/common/DeltaPanel';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import NextUp from './components/domain/NextUp';
 
 
 import React, { Suspense, lazy } from 'react';
@@ -36,6 +37,7 @@ export default function App() {
                                 <Route path="/testing" element={<TestingPage />} />
                                 <Route path="/changelog" element={<ChangelogPage />} />
                                 <Route path="*" element={<Navigate to="/features" replace />} />
+                                <Route path="/next" element={<NextUp />} />
                             </Routes>
                         </Suspense>
                     </ErrorBoundary>

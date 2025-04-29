@@ -94,6 +94,8 @@ function reducer(state, { type, payload }) {
       return { ...state, uploading: payload }
     case 'SET_PENDING_DELTA':
       return { ...state, pendingDelta: payload }
+    case 'SET_NEXT_UP':
+      return { ...state, nextUp: payload };
 
     default:
       return state
@@ -107,19 +109,19 @@ export function TwinProvider({ children }) {
   useEffect(() => {
     const fetchAll = async () => {
       const [{ data: systemComponents }, { data: features }, { data: tests },
-             { data: changelog }, { data: docsStatus }] = await Promise.all([
-        supabase.from('systemComponents').select('*'),
-        supabase.from('features').select('*'),
-        supabase.from('tests').select('*'),
-        supabase.from('changes').select('*'),
-        supabase.from('docsStatus').select('*')
-      ])
+        { data: changelog }, { data: docsStatus }] = await Promise.all([
+          supabase.from('systemComponents').select('*'),
+          supabase.from('features').select('*'),
+          supabase.from('tests').select('*'),
+          supabase.from('changes').select('*'),
+          supabase.from('docsStatus').select('*')
+        ])
 
       if (systemComponents) dispatch({ type: 'SET_SYSTEM_COMPONENTS', payload: systemComponents })
-      if (features)         dispatch({ type: 'SET_FEATURES',          payload: features })
-      if (tests)            dispatch({ type: 'SET_TESTS',             payload: tests })
-      if (changelog)        dispatch({ type: 'SET_CHANGELOG',         payload: changelog })
-      if (docsStatus)       dispatch({ type: 'SET_DOCS_STATUS',        payload: docsStatus })
+      if (features) dispatch({ type: 'SET_FEATURES', payload: features })
+      if (tests) dispatch({ type: 'SET_TESTS', payload: tests })
+      if (changelog) dispatch({ type: 'SET_CHANGELOG', payload: changelog })
+      if (docsStatus) dispatch({ type: 'SET_DOCS_STATUS', payload: docsStatus })
     }
 
     fetchAll()
