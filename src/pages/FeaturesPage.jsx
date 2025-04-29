@@ -1,82 +1,97 @@
-// src/pages/FeaturesPage.jsx
-import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
-import FeatureMatrix from '../components/domain/FeatureMatrix'
-import { useTwin } from '../context/TwinContext'
+import React, { useEffect, useState } from 'react';
+import { useTwin } from '../context/TwinContext';
+import { supabase } from '../lib/supabaseClient';
+import FeatureMatrix from '../components/domain/FeatureMatrix';
 
 export default function FeaturesPage() {
-  const [features, setFeatures] = useState([])
-  const { state: { suggestions }, dispatch } = useContext(useTwin());
-  const [loading, setLoading] = useState(true)
+  const { state:{ suggestions }, dispatch } = useTwin();
+  const [features, setFeatures] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 1) Initial Load
-  useEffect(() => {
-    fetchFeatures()
-  }, [])
+  // 1) Daten laden
+  useEffect(() => { fetchFeatures(); }, []);
 
   async function fetchFeatures() {
-    setLoading(true)
+    setLoading(true);
     const { data, error } = await supabase
       .from('features')
       .select('*')
-      .order('devDate', { ascending: true })
-    if (error) console.error(error)
-    else setFeatures(data)
-    setLoading(false)
+      .order('dev_date',{ ascending:true });
+    if (error) console.error(error);
+    else       setFeatures(data);
+    setLoading(false);
   }
 
-  // 2) Create / Update / Delete
-  async function handleUpsertFeature(feature) {
-    const { data, error } = await supabase
-      .from('features')
-      .upsert({
-        id: feature.id,            // existiert bei Update
-        title: feature.title,
-        status: feature.status,
-        prio: feature.prio,
-        risk: feature.risk,
-        complexity: feature.complexity,
-        devDate: feature.devDate,
-        prodDate: feature.prodDate,
-        componentId: feature.componentId
-      })
-      .select()
-    if (error) console.error(error)
-    else setFeatures(prev => {
-      // Replace oder anhängen
-      const idx = prev.findIndex(f => f.id === data[0].id)
-      if (idx > -1) prev[idx] = data[0]
-      else prev.push(data[0])
-      return [...prev]
-    })
-  }
-
-  async function handleDeleteFeature(id) {
-    const { error } = await supabase
-      .from('features')
+  // 2) Akzeptieren eines Vorschlags
+  async function acceptProposal(suggestion) {
+    const { entityType, data, id } = suggestion;
+    const table = entityType === 'feature' ? 'features' : 'system_components';
+    // Insert in Features/SystemComponents
+    const { error: err1 } = await supabase
+      .from(table)
+      .insert([data]);
+    if (err1) {
+      console.error(err1);
+      return;
+    }
+    // Vorschlag löschen
+    const { error: err2 } = await supabase
+      .from('suggestions')
       .delete()
-      .eq('id', id)
-    if (error) console.error(error)
-    else setFeatures(prev => prev.filter(f => f.id !== id))
+      .eq('id', id);
+    if (err2) console.error(err2);
+    else {
+      dispatch({ type:'REMOVE_SUGGESTION', payload:id });
+      fetchFeatures();
+    }
   }
+
+  // 3) Verwerfen eines Vorschlags
+  async function rejectProposal(id) {
+    const { error } = await supabase
+      .from('suggestions')
+      .delete()
+      .eq('id', id);
+    if (error) console.error(error);
+    else {
+      dispatch({ type:'REMOVE_SUGGESTION', payload:id });
+    }
+  }
+
+  // 4) Gemeinsames Array
+  const combined = [
+    ...suggestions.map(s => ({
+      ...s.data,
+      _tempId: s.id,
+      isSuggestion: true,
+      suggestionId: s.id
+    })),
+    ...features.map(f => ({
+      ...f,
+      isSuggestion: false
+    }))
+  ];
 
   return (
     <div>
       {loading
         ? <p>Loading…</p>
-        : <FeatureMatrix
-          features={features}
-          updateFeature={(idx, key, value) => {
-            // Map index → Objekt → Feld setzen → per upsert speichern
-            const f = features[idx]
-            const updated = { ...f, [key]: value }
-            handleUpsertFeature(updated)
-          }}
-          suggestions={suggestions}
-          onAcceptProposal={acceptProposal}
-          onRejectProposal={rejectProposal}
-        />
-      }
+        : (
+          <FeatureMatrix
+            items={combined}
+            updateFeature={(idx, key, value) => {
+              const f = combined[idx];
+              const updated = { ...f, [key]: value };
+              // direkt updaten in Supabase
+              supabase.from('features').upsert(updated).then(res => {
+                if (res.error) console.error(res.error);
+                else fetchFeatures();
+              });
+            }}
+            onAcceptProposal={acceptProposal}
+            onRejectProposal={rejectProposal}
+          />
+        )}
     </div>
   );
 }

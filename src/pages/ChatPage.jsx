@@ -1,14 +1,13 @@
-// File: src/pages/ChatPage.jsx
 import React, { useState } from 'react';
 import { useTwin } from '../context/TwinContext';
 import Chat from '../components/domain/Chat';
 import { askGPT } from '../api/gptClient';
 import { supabase } from '../lib/supabaseClient';
 
-// Pflichtfelder pro Event-Typ
+// Pflichtfelder pro Event-Typ (Beispiel)
 const requiredFields = {
   feature: ['title', 'status', 'prio'],
-  system: ['name', 'status', 'description']
+  system:  ['name', 'status', 'description']
 };
 
 export default function ChatPage() {
@@ -16,84 +15,96 @@ export default function ChatPage() {
   const [pendingEvent, setPendingEvent] = useState(null);
 
   const send = async (text) => {
-    dispatch({ type: 'PUSH_CHAT', payload: { role: 'user', content: text } });
+    dispatch({ type: 'PUSH_CHAT', payload: { role:'user', content:text } });
 
-    // Wenn wir auf Feldabfrage warten
+    // Wenn wir auf Feld-Abfrage warten:
     if (pendingEvent && pendingEvent.awaitField) {
-      // Speichere Feld-Wert
-      const { awaitField, data, eventType } = pendingEvent;
+      const { eventType, data, awaitField } = pendingEvent;
       data[awaitField] = text.trim();
-      // Finde nächstes fehlendes Feld
-      const fields = requiredFields[eventType] || [];
-      const missing = fields.find(f => !data[f]);
+      // Nächstes fehlendes Feld ermitteln
+      const missing = requiredFields[eventType].find(f => !data[f]);
       if (missing) {
-        // Frage nächstes fehlendes Feld
-        dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: `Bitte gib den Wert für \`${missing}\` an:` } });
-        setPendingEvent({ ...pendingEvent, data, awaitField: missing });
+        dispatch({
+          type:'PUSH_CHAT',
+          payload:{ role:'assistant', content:`Bitte gib den Wert für \`${missing}\` an:` }
+        });
+        setPendingEvent({ eventType, data, awaitField: missing });
       } else {
-        // Alle Felder beisammen: Speichern
-        await saveEvent(pendingEvent.eventType, data);
+        // Alle Felder da: Vorschlag speichern
+        await saveEvent(eventType, data);
         setPendingEvent(null);
       }
       return;
     }
 
-    // Wenn GPT-Flow: Erkennung und erste Daten
+    // Standard GPT-Erkennung:
     try {
-      const { eventDetected, eventType, data, chatResponse } = await askGPT(text, state.chat);
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: chatResponse } });
+      const { eventDetected, eventType, data, chatResponse } =
+        await askGPT(text, state.chat);
+      dispatch({ type:'PUSH_CHAT', payload:{ role:'assistant', content:chatResponse } });
+
       if (eventDetected) {
-        const fields = requiredFields[eventType] || [];
-        // Direkt vorhandene Werte ins data übernehmen, andere abfragen
-        const present = Object.keys(data);
-        const missing = fields.find(f => !present.includes(f));
+        // erstes fehlendes Feld ermitteln
+        const missing = requiredFields[eventType].find(f => !data[f]);
         if (missing) {
-          dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: `Bitte gib den Wert für \`${missing}\` an:` } });
+          dispatch({
+            type:'PUSH_CHAT',
+            payload:{ role:'assistant', content:`Bitte gib den Wert für \`${missing}\` an:` }
+          });
           setPendingEvent({ eventType, data, awaitField: missing });
         } else {
-          // Alles da
+          // gleich speichern
           await saveEvent(eventType, data);
         }
       }
     } catch (err) {
-      console.error('Send-Error', err);
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: 'Entschuldigung, da ist ein Fehler aufgetreten.' } });
+      console.error(err);
+      dispatch({
+        type:'PUSH_CHAT',
+        payload:{ role:'assistant', content:'Entschuldigung, da ist ein Fehler aufgetreten.' }
+      });
     }
   };
 
-  const saveEvent = async (eventType, data) => {
-      // Lege neuen Vorschlag an, statt direkt in Features
-  const { error } = await supabase
-    .from('suggestions')
-    .insert([{
-      entityType: eventType,     // 'feature' oder 'system'
-      entityId: null,            // noch kein ID
-      creatorId: supabase.auth.user().id,
-      comment: null,             // optional aus Chat
-      data: data,                // alle erkannte Felder
-      status: 'open'
-    }]);
+  // Vorschlag in "suggestions" anlegen (nicht direkt in features)
+  async function saveEvent(eventType, data) {
+    const { error } = await supabase
+      .from('suggestions')
+      .insert([{
+        entityType: eventType,
+        entityId: null,
+        creatorId: supabase.auth.user().id,
+        comment: null,
+        sessionId: null,
+        data,
+        status: 'open'
+      }]);
     if (error) {
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: `Fehler beim Speichern: ${error.message}` } });
+      dispatch({
+        type:'PUSH_CHAT',
+        payload:{ role:'assistant', content:`Fehler beim Speichern: ${error.message}` }
+      });
     } else {
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: '👍 Dein Eintrag wurde gespeichert!' } });
-      await supabase.from('changes').insert([{ source: 'ui', type: 'create', message: `Angelegt via Chat: ${eventType}`, relatedComponentId: insertResult.id }]);
+      dispatch({
+        type:'PUSH_CHAT',
+        payload:{ role:'assistant', content:'👍 Dein Vorschlag wurde angelegt!' }
+      });
     }
-  };
+  }
 
   const upload = async (file) => {
-    dispatch({ type: 'SET_UPLOAD', payload: file.name });
+    dispatch({ type:'SET_UPLOAD', payload:file.name });
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch('/api/upload',{ method:'POST', body:fd });
       const { summary } = await res.json();
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: summary } });
+      dispatch({ type:'PUSH_CHAT', payload:{ role:'assistant', content:summary } });
     } catch (error) {
-      console.error('Fehler beim Hochladen:', error);
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: 'Upload fehlgeschlagen.' } });
+      console.error(error);
+      dispatch({ type:'PUSH_CHAT', payload:{ role:'assistant', content:'Upload fehlgeschlagen.' } });
     } finally {
-      dispatch({ type: 'SET_UPLOAD', payload: null });
+      dispatch({ type:'SET_UPLOAD', payload:null });
     }
   };
 
