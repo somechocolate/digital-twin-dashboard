@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function TestingTab({ tests, setTests }) {
+export default function TestingTab({ tests, onAdd, onUpdate, onDelete }) {
   const updateStatus = (index, newStatus) => {
     const copy = [...tests]
     copy[index] = {

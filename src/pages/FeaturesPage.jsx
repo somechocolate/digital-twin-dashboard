@@ -1,6 +1,6 @@
 // src/pages/FeaturesPage.jsx
 import { useEffect, useState } from 'react'
-import { supabase }  from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient'
 import FeatureMatrix from '../components/domain/FeatureMatrix'
 
 export default function FeaturesPage() {
@@ -19,7 +19,7 @@ export default function FeaturesPage() {
       .select('*')
       .order('devDate', { ascending: true })
     if (error) console.error(error)
-    else        setFeatures(data)
+    else setFeatures(data)
     setLoading(false)
   }
 
@@ -40,13 +40,13 @@ export default function FeaturesPage() {
       })
       .select()
     if (error) console.error(error)
-    else        setFeatures(prev => {
-                  // Replace oder anhängen
-                  const idx = prev.findIndex(f => f.id === data[0].id)
-                  if (idx > -1) prev[idx] = data[0]
-                  else          prev.push(data[0])
-                  return [...prev]
-                })
+    else setFeatures(prev => {
+      // Replace oder anhängen
+      const idx = prev.findIndex(f => f.id === data[0].id)
+      if (idx > -1) prev[idx] = data[0]
+      else prev.push(data[0])
+      return [...prev]
+    })
   }
 
   async function handleDeleteFeature(id) {
@@ -55,18 +55,22 @@ export default function FeaturesPage() {
       .delete()
       .eq('id', id)
     if (error) console.error(error)
-    else        setFeatures(prev => prev.filter(f => f.id !== id))
+    else setFeatures(prev => prev.filter(f => f.id !== id))
   }
 
   return (
     <div>
-      {loading 
+      {loading
         ? <p>Loading…</p>
         : <FeatureMatrix
-            features={features}
-            onSave={handleUpsertFeature}
-            onDelete={handleDeleteFeature}
-          />}
+          features={features}
+          updateFeature={(idx, key, value) => {
+            // Map index → Objekt → Feld setzen → per upsert speichern
+            const f = features[idx]
+            const updated = { ...f, [key]: value }
+            handleUpsertFeature(updated)
+          }}
+        />}
     </div>
   )
 }

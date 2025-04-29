@@ -50,6 +50,6 @@ export default function ChangelogPage() {
   }
 
   return (
-    <ChangelogTab />
+    <ChangelogTab changelog={state.changelog} />
   )
 }
