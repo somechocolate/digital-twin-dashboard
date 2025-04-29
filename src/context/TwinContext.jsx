@@ -13,6 +13,7 @@ const initialState = {
   changelog: [],
   docsStatus: [],
   chat: [],
+  suggestions: [],
   uploading: null,
   pendingDelta: null
 }
@@ -96,9 +97,13 @@ function reducer(state, { type, payload }) {
       return { ...state, pendingDelta: payload }
     case 'SET_NEXT_UP':
       return { ...state, nextUp: payload };
+      case 'SET_SUGGESTIONS':
+        return { ...state, suggestions: payload };
+      case 'REMOVE_SUGGESTION':
+        return { ...state, suggestions: state.suggestions.filter(s => s.id !== payload) };
+      default:
+        return state;
 
-    default:
-      return state
   }
 }
 
@@ -109,12 +114,13 @@ export function TwinProvider({ children }) {
   useEffect(() => {
     const fetchAll = async () => {
       const [{ data: systemComponents }, { data: features }, { data: tests },
-        { data: changelog }, { data: docsStatus }] = await Promise.all([
+        { data: changelog }, { data: docsStatus }, { data: suggestions }] = await Promise.all([
           supabase.from('systemComponents').select('*'),
           supabase.from('features').select('*'),
           supabase.from('tests').select('*'),
           supabase.from('changes').select('*'),
-          supabase.from('docsStatus').select('*')
+          supabase.from('docsStatus').select('*'),
+          supabase.from('suggestions').select('*').eq('status','open')
         ])
 
       if (systemComponents) dispatch({ type: 'SET_SYSTEM_COMPONENTS', payload: systemComponents })
@@ -122,6 +128,7 @@ export function TwinProvider({ children }) {
       if (tests) dispatch({ type: 'SET_TESTS', payload: tests })
       if (changelog) dispatch({ type: 'SET_CHANGELOG', payload: changelog })
       if (docsStatus) dispatch({ type: 'SET_DOCS_STATUS', payload: docsStatus })
+        if (suggestions) dispatch({ type: 'SET_SUGGESTIONS', payload: suggestions })
     }
 
     fetchAll()

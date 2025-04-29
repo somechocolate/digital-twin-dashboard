@@ -62,8 +62,17 @@ export default function ChatPage() {
   };
 
   const saveEvent = async (eventType, data) => {
-    const table = eventType === 'feature' ? 'features' : 'systemComponents';
-    const { data: insertResult, error } = await supabase.from(table).insert([data]).single();
+      // Lege neuen Vorschlag an, statt direkt in Features
+  const { error } = await supabase
+    .from('suggestions')
+    .insert([{
+      entityType: eventType,     // 'feature' oder 'system'
+      entityId: null,            // noch kein ID
+      creatorId: supabase.auth.user().id,
+      comment: null,             // optional aus Chat
+      data: data,                // alle erkannte Felder
+      status: 'open'
+    }]);
     if (error) {
       dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: `Fehler beim Speichern: ${error.message}` } });
     } else {

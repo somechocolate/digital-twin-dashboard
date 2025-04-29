@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FeatureMatrix from '../components/domain/FeatureMatrix'
+import { useTwin } from '../context/TwinContext'
 
 export default function FeaturesPage() {
   const [features, setFeatures] = useState([])
+  const { state: { suggestions }, dispatch } = useContext(useTwin());
   const [loading, setLoading] = useState(true)
 
   // 1) Initial Load
@@ -69,7 +71,11 @@ export default function FeaturesPage() {
             const f = features[idx]
             const updated = { ...f, [key]: value }
             handleUpsertFeature(updated)
-          }} />
+          }}
+          suggestions={suggestions}
+          onAcceptProposal={acceptProposal}
+          onRejectProposal={rejectProposal}
+        />
       }
     </div>
   );

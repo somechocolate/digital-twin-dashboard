@@ -1,21 +1,37 @@
 import dayjs from 'dayjs'
 import { useTwin } from '../../context/TwinContext'
 
-export default function FeatureMatrix({ features, updateFeature }) {
+export default function FeatureMatrix({ features, updateFeature, suggestions = [],
+  onAcceptProposal, onRejectProposal }) {
   // Widget „Days till next deployment“
   const today = dayjs()
   const nextDate = key => {
     const nxt = features
       .map(f => f[key]).filter(Boolean)
       .map(d => dayjs(d)).filter(d => d.isAfter(today))
-      .sort((a,b)=>a-b)[0]
-    return nxt ? `${nxt.diff(today,'day')} d → ${nxt.format('DD.MM')}` : '—'
+      .sort((a, b) => a - b)[0]
+    return nxt ? `${nxt.diff(today, 'day')} d → ${nxt.format('DD.MM')}` : '—'
   }
 
   return (
     <div className="bg-white p-4 rounded shadow">
       <h2 className="font-bold text-xl mb-2">🧩 Feature-Matrix</h2>
-
+      {suggestions.length > 0 && (
+        <section className="mb-4 border p-2 bg-yellow-50 rounded">
+          <h3 className="font-semibold">🧠 GPT-Vorschläge</h3>
+          <ul className="space-y-2">
+            {suggestions.map(s => (
+              <li key={s.id} className="flex justify-between items-center">
+                <span>{s.data.title}</span>
+                <div className="space-x-2">
+                  <button onClick={() => onAcceptProposal(s)} className="text-green-600">✓</button>
+                  <button onClick={() => onRejectProposal(s.id)} className="text-red-600">✕</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <p className="text-xs text-gray-500 mb-2">
         🗓️ Next Dev: <strong>{nextDate('devDate')}</strong> ·
         Next Prod: <strong>{nextDate('prodDate')}</strong>
@@ -24,18 +40,18 @@ export default function FeatureMatrix({ features, updateFeature }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            {['Feature','Status','Prio','Risiko','Komplexität','Zieldatum (Dev)','Zieldatum (Prod)']
+            {['Feature', 'Status', 'Prio', 'Risiko', 'Komplexität', 'Zieldatum (Dev)', 'Zieldatum (Prod)']
               .map(h => <th key={h}>{h}</th>)}
           </tr>
         </thead>
         <tbody>
-          {features.map((f,i)=>(
+          {features.map((f, i) => (
             <tr key={i} className="border-b">
               <td>{f.title}</td>
               <td>
                 <select
                   value={f.status}
-                  onChange={e=>updateFeature(i,'status',e.target.value)}
+                  onChange={e => updateFeature(i, 'status', e.target.value)}
                 >
                   <option>Geplant</option>
                   <option>In Dev</option>
@@ -45,7 +61,7 @@ export default function FeatureMatrix({ features, updateFeature }) {
               <td>
                 <select
                   value={f.prio}
-                  onChange={e=>updateFeature(i,'prio',e.target.value)}
+                  onChange={e => updateFeature(i, 'prio', e.target.value)}
                 >
                   <option>Niedrig</option>
                   <option>Mittel</option>
@@ -56,7 +72,7 @@ export default function FeatureMatrix({ features, updateFeature }) {
               <td>
                 <select
                   value={f.complexity}
-                  onChange={e=>updateFeature(i,'complexity',e.target.value)}
+                  onChange={e => updateFeature(i, 'complexity', e.target.value)}
                 >
                   <option>Niedrig</option>
                   <option>Mittel</option>
@@ -67,16 +83,16 @@ export default function FeatureMatrix({ features, updateFeature }) {
                 <input
                   type="date"
                   className="border px-2 py-1 rounded"
-                  value={f.devDate||''}
-                  onChange={e=>updateFeature(i,'devDate',e.target.value)}
+                  value={f.devDate || ''}
+                  onChange={e => updateFeature(i, 'devDate', e.target.value)}
                 />
               </td>
               <td>
                 <input
                   type="date"
                   className="border px-2 py-1 rounded"
-                  value={f.prodDate||''}
-                  onChange={e=>updateFeature(i,'prodDate',e.target.value)}
+                  value={f.prodDate || ''}
+                  onChange={e => updateFeature(i, 'prodDate', e.target.value)}
                 />
               </td>
             </tr>
