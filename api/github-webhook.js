@@ -2,32 +2,51 @@
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase Admin‐Client (Service Role Key)
-const supabaseAdmin = createClient(
-    process.env.REACT_APP_SUPABASE_URL,
-    process.env.REACT_APP_SUPABASE_ANON_KE
-)
+// 1) Direkt mal Env-Vars ausgeben, um sicherzugehen, dass sie da sind:
+console.log('▹ REACT_APP_SUPABASE_URL:', process.env.SUPABASE_URL)
+console.log('▹ REACT_APP_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅' : '❌ MISSING')
+console.log('▹ GITHUB_WEBHOOK_SECRET:', process.env.GITHUB_WEBHOOK_SECRET ? '✅' : '❌ MISSING')
 
-// Deaktiviere Next.js’ JSON-Parser
-export const config = {
-  api: {
-    bodyParser: false
-  }
+// Supabase Admin‐Client (Service Role Key)
+let supabaseAdmin
+try {
+  supabaseAdmin = createClient(
+    process.env.REACT_APP_SUPABASE_URL,
+    process.env.REACT_APP_SUPABASE_ANON_KEY
+  )
+} catch (e) {
+  console.error('Failed to init Supabase Admin client:', e)
 }
 
+
+
+// Deaktiviere Next.js’ JSON-Parser
+export const config = { api: { bodyParser: false } }
+
 export default async function handler(req, res) {
+  console.log('🔥 Handler entered, method=', req.method)
+  if (!supabaseAdmin) {
+    console.error('No supabaseAdmin available, aborting')
+    return res.status(500).send('Server misconfiguration')
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).send('Method Not Allowed')
   }
 
   // 1) Raw Body manuell einlesen
-  const buf = await new Promise((resolve, reject) => {
-    const chunks = []
-    req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
-    req.on('end', () => resolve(Buffer.concat(chunks)))
-    req.on('error', reject)
-  })
+  let buf
+  try {
+    buf = await new Promise((resolve, reject) => {
+      const chunks = []
+      req.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)))
+      req.on('end', () => resolve(Buffer.concat(chunks)))
+      req.on('error', reject)
+    })
+  } catch (e) {
+    console.error('Error reading body:', e)
+    return res.status(400).send('Bad Request')
+  }
   const payloadRaw = buf.toString()
 
   // 2) Signatur‐Header extrahieren
@@ -71,25 +90,15 @@ export default async function handler(req, res) {
   }
   const eventType = req.headers['x-github-event'] || 'unknown'
 
-  try {
-    // 7) Logge das Roh-Event
-    await supabaseAdmin
-      .from('github_events')
-      .insert([{ event_type: eventType, payload }])
-
-    // 8) Changelog-Entry (für AI-Flow)
-    await supabaseAdmin
-      .from('changes')
-      .insert([{
-        source: 'github',
-        type: eventType,
-        message: `GitHub Event: ${eventType}`,
-        relatedComponentId: null
-      }])
-
-    return res.status(200).json({ received: true })
-  } catch (err) {
-    console.error('🛑 Error in /api/github-webhook:', err)
-    return res.status(500).json({ error: err.message })
-  }
+ // Wenn alles ok, logge in Supabase
+ try {
+  const eventType = req.headers['x-github-event'] || 'unknown'
+  console.log('→ Logging GitHub event:', eventType)
+  await supabaseAdmin.from('github_events').insert([{ event_type:eventType, payload:JSON.parse(payloadRaw) }])
+  await supabaseAdmin.from('changes').insert([{ source:'github', type:eventType, message:`GitHub Event: ${eventType}`, relatedComponentId:null }])
+  return res.status(200).json({ received: true })
+} catch (err) {
+  console.error('Error inserting into Supabase:', err)
+  return res.status(500).json({ error: err.message })
+}
 }
