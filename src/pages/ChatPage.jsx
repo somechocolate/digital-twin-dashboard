@@ -20,20 +20,19 @@ export default function ChatPage() {
   };
 
   const upload = async (file) => {
-    const upload = async (file) => {
-      dispatch({ type: 'SET_UPLOAD', payload: file.name }); dispatch({ type: 'SET_UPLOAD', payload: file.name });
-      const fd = new FormData();
-      fd.append('file', file);
+    dispatch({ type: 'SET_UPLOAD', payload: file.name });
+    const fd = new FormData();
+    fd.append('file', file);
 
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: fd }); const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const { summary } = await res.json();
-        dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: summary } });
-      } catch (error) {
-        console.error('Fehler beim Hochladen:', error);
-      }
-      dispatch({ type: 'SET_UPLOAD', payload: null });
-    };
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const { summary } = await res.json();
+      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: summary } });
+    } catch (error) {
+      console.error('Fehler beim Hochladen:', error);
+    }
+
+    dispatch({ type: 'SET_UPLOAD', payload: null });
 
     return (
       <Chat
