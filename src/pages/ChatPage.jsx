@@ -6,25 +6,24 @@ import { askGPT } from '../api/gptClient'
 import { supabase } from '../lib/supabaseClient'
 import { v4 as uuidv4 } from 'uuid'
 
-// Pflichtfelder pro Event-Typ
+// Pflichtfelder pro Event-Typ (Feature liefert nur "featureName")
 const requiredFields = {
-  feature: ['title', 'status', 'prio'],
-  system: ['name', 'status', 'description']
+  feature: ['featureName'],
+  system:  ['name', 'status', 'description']
 }
 
 export default function ChatPage() {
   const { state, dispatch } = useTwin()
   const [pendingEvent, setPendingEvent] = useState(null)
 
-  // 1) Senden einer Chat-Nachricht
   const send = async (text) => {
+    // 1) User‐Nachricht in Chat pushen
     dispatch({ type: 'PUSH_CHAT', payload: { role: 'user', content: text } })
 
-    // 2) Falls wir gerade auf einen Feldwert warten
+    // 2) Wenn wir auf eine Feld‐Antwort warten (future Erweiterung)
     if (pendingEvent && pendingEvent.awaitField) {
       const { eventType, data, awaitField } = pendingEvent
       data[awaitField] = text.trim()
-
       const missing = requiredFields[eventType].find(f => !data[f])
       if (missing) {
         dispatch({
@@ -33,41 +32,43 @@ export default function ChatPage() {
         })
         setPendingEvent({ eventType, data, awaitField: missing })
       } else {
+        // alle Felder da → speichern
         await saveEvent(eventType, data)
         setPendingEvent(null)
       }
       return
     }
 
-    // 3) Standard-GPT-Call
+    // 3) Standard‐GPT‐Call
     try {
-      const result = await askGPT(text, state.chat)
-      const { eventDetected, eventType, data, chatResponse } = result
+      const { eventDetected, eventType, data, chatResponse } =
+        await askGPT(text, state.chat)
 
-      // WENN GPT "featureName" liefert, mappen wir es auf "title"
-      if (eventType === 'feature' && data.featureName) {
-        data.title = data.featureName
-        delete data.featureName
-      }
+      // 3a) Chat‐Antwort pushen
+      dispatch({
+        type: 'PUSH_CHAT',
+        payload: { role: 'assistant', content: chatResponse }
+      })
 
-      // 3a) Chat-Antwort pushen
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: chatResponse } })
-
-      // 3b) Sofort in den Context pushen (Frontend-Vorschlag)
+      // 3b) Wenn neues Feature erkannt wurde
       if (eventDetected && eventType === 'feature') {
+        // → sofort in UI‐Context
+        const tempId = uuidv4()
         dispatch({
           type: 'ADD_SUGGESTION',
           payload: {
-            id: uuidv4(),
+            id: tempId,
             entityType: 'feature',
             data,
             status: 'open'
           }
         })
+        // → und in Supabase‐Tabelle persistieren
+        await saveEvent(eventType, data)
       }
 
-      // 3c) Wenn noch Felder fehlen, Fragen-Dialog starten, sonst speichern
-      if (eventDetected) {
+      // 3c) Falls andere Event‐Typen oder später weitere Felder …
+      if (eventDetected && eventType !== 'feature') {
         const missing = requiredFields[eventType]?.find(f => !data[f])
         if (missing) {
           dispatch({
@@ -88,31 +89,26 @@ export default function ChatPage() {
     }
   }
 
-  // Speichert den Vorschlag in der suggestions-Tabelle
+  /** Persistiert einen Vorschlag in der suggestions-Tabelle */
   async function saveEvent(eventType, data) {
-    const { data: inserted, error } = await supabase
+    const { error } = await supabase
       .from('suggestions')
       .insert([{
         entityType: eventType,
-        entityId: null,
-        creatorId: supabase.auth.user()?.id || null,
-        comment: null,
-        sessionId: null,
+        entityId:   null,
+        creatorId:  supabase.auth.user()?.id || null,
+        comment:    null,
+        sessionId:  null,
         data,
-        status: 'open'
+        status:     'open'
       }])
-
     if (error) {
-      console.error('💥 saveEvent full error:', error)
+      console.error('saveEvent error:', error)
       dispatch({
         type: 'PUSH_CHAT',
-        payload: {
-          role: 'assistant',
-          content: `🚨 Fehler beim Speichern: ${error.message}`
-        }
+        payload: { role: 'assistant', content: `Fehler beim Speichern: ${error.message}` }
       })
     } else {
-      console.log('✅ saveEvent inserted row:', inserted)
       dispatch({
         type: 'PUSH_CHAT',
         payload: { role: 'assistant', content: '👍 Dein Vorschlag wurde angelegt!' }
@@ -120,7 +116,7 @@ export default function ChatPage() {
     }
   }
 
-  // **Datei-Upload** (wiederhergestellt)
+  /** Datei‐Upload (bleibt unverändert) */
   const upload = async (file) => {
     dispatch({ type: 'SET_UPLOAD', payload: file.name })
     try {
