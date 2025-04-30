@@ -12,8 +12,8 @@ console.log('â–¹ GITHUB_WEBHOOK_SECRET:', process.env.GITHUB_WEBHOOK_SECRET ? 'â
 let supabaseAdmin
 try {
   supabaseAdmin = createClient(
-    process.env.REACT_APP_SUPABASE_URL,
-    process.env.REACT_APP_SUPABASE_ANON_KEY
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
   )
 } catch (e) {
   console.error('Failed to init Supabase Admin client:', e)
