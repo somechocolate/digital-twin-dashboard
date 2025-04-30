@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 // Pflichtfelder pro Event-Typ
 const requiredFields = {
   feature: ['title', 'status', 'prio'],
-  system:  ['name', 'status', 'description']
+  system: ['name', 'status', 'description']
 }
 
 export default function ChatPage() {
@@ -44,6 +44,12 @@ export default function ChatPage() {
       const result = await askGPT(text, state.chat)
       const { eventDetected, eventType, data, chatResponse } = result
 
+      // WENN GPT "featureName" liefert, mappen wir es auf "title"
+      if (eventType === 'feature' && data.featureName) {
+        data.title = data.featureName
+        delete data.featureName
+      }
+
       // 3a) Chat-Antwort pushen
       dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: chatResponse } })
 
@@ -52,10 +58,10 @@ export default function ChatPage() {
         dispatch({
           type: 'ADD_SUGGESTION',
           payload: {
-            id:          uuidv4(),
-            entityType:  'feature',
+            id: uuidv4(),
+            entityType: 'feature',
             data,
-            status:     'open'
+            status: 'open'
           }
         })
       }
@@ -88,12 +94,12 @@ export default function ChatPage() {
       .from('suggestions')
       .insert([{
         entityType: eventType,
-        entityId:   null,
-        creatorId:  supabase.auth.user()?.id || null,
-        comment:    null,
-        sessionId:  null,
+        entityId: null,
+        creatorId: supabase.auth.user()?.id || null,
+        comment: null,
+        sessionId: null,
         data,
-        status:     'open'
+        status: 'open'
       }])
 
     if (error) {
