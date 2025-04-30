@@ -1,4 +1,4 @@
-// src/pages/ChatPage.jsx
+// File: src/pages/ChatPage.jsx
 import React, { useState } from 'react'
 import { useTwin } from '../context/TwinContext'
 import Chat from '../components/domain/Chat'
@@ -25,7 +25,7 @@ export default function ChatPage() {
       const { eventType, data, awaitField } = pendingEvent
       data[awaitField] = text.trim()
 
-      const missing = requiredFields[eventType].find(f => !data[f])
+      const missing = requiredFields[eventType]?.find(f => !data[f])
       if (missing) {
         dispatch({
           type: 'PUSH_CHAT',
@@ -41,9 +41,8 @@ export default function ChatPage() {
 
     // 3) Standard-GPT-Call
     try {
-      // → hier speichern wir das komplette Ergebnis
-      const result = await askGPT(text, state.chat)
-      const { eventDetected, eventType, data, chatResponse } = result
+      const { eventDetected, eventType, data, chatResponse } =
+        await askGPT(text, state.chat)
 
       // 3a) Chat-Antwort pushen
       dispatch({
@@ -114,7 +113,7 @@ export default function ChatPage() {
     }
   }
 
-  // Datei-Upload (unverändert)
+  // Datei-Upload (wie gehabt)
   const upload = async (file) => {
     dispatch({ type: 'SET_UPLOAD', payload: file.name })
     try {
