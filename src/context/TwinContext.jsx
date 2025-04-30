@@ -75,6 +75,8 @@ function reducer(state, { type, payload }) {
 
     case 'SET_SUGGESTIONS':
       return { ...state, suggestions: payload }
+    case 'ADD_SUGGESTION':
+      return { ...state, suggestions: [...state.suggestions, payload] };
     case 'REMOVE_SUGGESTION':
       return { ...state, suggestions: state.suggestions.filter(s => s.id !== payload) }
 
@@ -112,11 +114,11 @@ export function TwinProvider({ children }) {
       ])
 
       if (systemComponents) dispatch({ type: 'SET_SYSTEM_COMPONENTS', payload: systemComponents })
-      if (features)         dispatch({ type: 'SET_FEATURES',          payload: features })
-      if (tests)            dispatch({ type: 'SET_TESTS',             payload: tests })
-      if (changelog)        dispatch({ type: 'SET_CHANGELOG',         payload: changelog })
-      if (docsStatus)       dispatch({ type: 'SET_DOCS_STATUS',        payload: docsStatus })
-      if (suggestions)      dispatch({ type: 'SET_SUGGESTIONS',        payload: suggestions })
+      if (features) dispatch({ type: 'SET_FEATURES', payload: features })
+      if (tests) dispatch({ type: 'SET_TESTS', payload: tests })
+      if (changelog) dispatch({ type: 'SET_CHANGELOG', payload: changelog })
+      if (docsStatus) dispatch({ type: 'SET_DOCS_STATUS', payload: docsStatus })
+      if (suggestions) dispatch({ type: 'SET_SUGGESTIONS', payload: suggestions })
     }
     fetchAll()
   }, [])

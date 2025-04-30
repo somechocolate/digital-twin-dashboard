@@ -1,4 +1,12 @@
 // File: /api/gpt.js
+import { createClient } from '@supabase/supabase-js'
+
+// supabaseService benötigt den SERVICE_ROLE key
+const supabaseService = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY
+)
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -52,6 +60,19 @@ Wenn eventDetected=false ist, setze eventType und data auf null bzw. {}.
     } else {
       payload = { eventDetected: false, eventType: null, data: {}, chatResponse: content };
     }
+
+  // **Neu:** Wenn GPT ein Event erkannt hat, als Vorschlag speichern
+  if (eventDetected && eventType === 'feature') {
+    const { error } = await supabaseService
+      .from('suggestions')
+      .insert([{
+        entityType: eventType,
+        data,                      // hier kommt z.B. { title, description, ... }
+        status: 'open',            // offener Vorschlag
+        createdAt: new Date().toISOString()
+      }])
+    if (error) console.error('Suggestion Insert Error:', error)
+  }
 
     return res.status(200).json(payload);
   } catch (error) {
