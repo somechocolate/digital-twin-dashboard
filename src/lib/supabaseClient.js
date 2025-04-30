@@ -1,8 +1,8 @@
 // src/lib/supabaseClient.js
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl  = process.env.REACT_APP_SUPABASE_URL
-const supabaseAnon = process.env.REACT_APP_SUPABASE_ANON_KEY
+const supabaseUrl  = process.env.SUPABASE_URL
+const supabaseAnon = process.env.SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnon) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY in env')
