@@ -2,7 +2,7 @@
 import React from 'react'
 import dayjs from 'dayjs'
 
-export default function FeatureMatrix({ items = [], updateFeature, onAcceptProposal, onRejectProposal }) {
+export default function FeatureMatrix({ items = [], suggestions = [], updateFeature, onAcceptProposal, onRejectProposal }) {
   // Berechne "Next Date" nur aus echten Features
   const today = dayjs()
   const nextDate = key => {
