@@ -1,6 +1,7 @@
 // File: /api/github-webhook.js
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import fetch from 'node-fetch'
 
 // 1) Direkt mal Env-Vars ausgeben, um sicherzugehen, dass sie da sind:
 console.log('▹ REACT_APP_SUPABASE_URL:', process.env.SUPABASE_URL)
@@ -51,18 +52,18 @@ export default async function handler(req, res) {
 
   // 2) Signatur‐Header extrahieren
   const sig256 = req.headers['x-hub-signature-256'] || ''
-  const sig1   = req.headers['x-hub-signature'] || ''
+  const sig1 = req.headers['x-hub-signature'] || ''
   const secret = process.env.GITHUB_WEBHOOK_SECRET || ''
 
   // 3) HMAC berechnen
   const hmac256 = crypto.createHmac('sha256', secret).update(payloadRaw).digest('hex')
-  const hmac1   = crypto.createHmac('sha1',   secret).update(payloadRaw).digest('hex')
-  const exp256  = `sha256=${hmac256}`
-  const exp1    = `sha1=${hmac1}`
+  const hmac1 = crypto.createHmac('sha1', secret).update(payloadRaw).digest('hex')
+  const exp256 = `sha256=${hmac256}`
+  const exp1 = `sha1=${hmac1}`
 
   // 4) Debug-Logs
   console.log('GitHub→sig256:', sig256, 'expected→', exp256)
-  console.log('GitHub→sig1:  ', sig1,   'expected→', exp1)
+  console.log('GitHub→sig1:  ', sig1, 'expected→', exp1)
 
   // 5) Timing-safe Compare
   let valid = false
@@ -90,15 +91,43 @@ export default async function handler(req, res) {
   }
   const eventType = req.headers['x-github-event'] || 'unknown'
 
- // Wenn alles ok, logge in Supabase
- try {
-  const eventType = req.headers['x-github-event'] || 'unknown'
-  console.log('→ Logging GitHub event:', eventType)
-  await supabaseAdmin.from('github_events').insert([{ eventType, payload:JSON.parse(payloadRaw) }])
-  await supabaseAdmin.from('changes').insert([{ source:'github', type:eventType, message:`GitHub Event: ${eventType}`, relatedComponentId:null }])
-  return res.status(200).json({ received: true })
-} catch (err) {
-  console.error('Error inserting into Supabase:', err)
-  return res.status(500).json({ error: err.message })
-}
+  // Wenn alles ok, logge in Supabase
+  try {
+    const eventType = req.headers['x-github-event'] || 'unknown'
+    console.log('→ Logging GitHub event:', eventType)
+    await supabaseAdmin.from('github_events').insert([{ eventType, payload: JSON.parse(payloadRaw) }])
+    await supabaseAdmin.from('changes').insert([{ source: 'github', type: eventType, message: `GitHub Event: ${eventType}`, relatedComponentId: null }])
+    // ❷ Jetzt Delta-Analyse anstoßen:
+    let newSuggestions = []
+    try {
+      const deltaRes = await fetch(
+        `${process.env.VERCEL_URL || ''}/api/delta`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idea: req.body, knownTags: [] })
+        }
+      )
+      newSuggestions = (await deltaRes.json()).suggestions
+    } catch (err) {
+      console.error('Delta-Analyse im Webhook fehlgeschlagen:', err)
+    }
+
+    // ❸ Vorschläge in supabase ’suggestions’ table schreiben
+    for (const s of newSuggestions) {
+      await supabaseAdmin
+        .from('suggestions')
+        .insert([{
+          entityType: s.entityType,
+          data: s.data,
+          status: 'open'
+        }])
+    }
+
+    return res.status(200).json({ received: true })
+  } catch (err) {
+    console.error('Error inserting into Supabase:', err)
+    return res.status(500).json({ error: err.message })
+  }
+
 }
