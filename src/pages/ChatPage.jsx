@@ -3,9 +3,9 @@ import { useTwin } from '../context/TwinContext';
 import Chat from '../components/domain/Chat';
 import { askGPT } from '../api/gptClient';
 import { supabase } from '../lib/supabaseClient';
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
-// Pflichtfelder pro Event-Typ (Beispiel)
+// Pflichtfelder pro Event-Typ
 const requiredFields = {
   feature: ['title', 'status', 'prio'],
   system: ['name', 'status', 'description']
@@ -16,50 +16,54 @@ export default function ChatPage() {
   const [pendingEvent, setPendingEvent] = useState(null);
 
   const send = async (text) => {
+    // 1) User-Message pushen
     dispatch({ type: 'PUSH_CHAT', payload: { role: 'user', content: text } });
 
-    // Wenn wir auf Feld-Abfrage warten:
+    // 2) Falls wir gerade im Feld-Dialog sind
     if (pendingEvent && pendingEvent.awaitField) {
       const { eventType, data, awaitField } = pendingEvent;
       data[awaitField] = text.trim();
-      // Nächstes fehlendes Feld ermitteln
+
       const missing = requiredFields[eventType].find(f => !data[f]);
       if (missing) {
+        // nächstes Feld abfragen
         dispatch({
           type: 'PUSH_CHAT',
           payload: { role: 'assistant', content: `Bitte gib den Wert für \`${missing}\` an:` }
         });
         setPendingEvent({ eventType, data, awaitField: missing });
       } else {
-        // Alle Felder da: Vorschlag speichern
+        // alles komplett → speichern
         await saveEvent(eventType, data);
         setPendingEvent(null);
       }
       return;
     }
 
-    // Standard GPT-Erkennung:
+    // 3) Standard GPT-Call
     try {
       const { eventDetected, eventType, data, chatResponse } =
         await askGPT(text, state.chat);
 
-      // Wenn ein Vorschlag erzeugt wurde, gleich in den Context pushen
-      if (result.eventDetected && result.eventType === 'feature') {
+      // 3a) Chat-Antwort pushen
+      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: chatResponse } });
+
+      // 3b) Wenn GPT ein Feature-Vorschlag erkannt hat, sofort in Context & DB
+      if (eventDetected && eventType === 'feature') {
+        // Frontend-State
         dispatch({
           type: 'ADD_SUGGESTION',
           payload: {
-            id: uuidv4(),            // keine DB-ID, nur fürs Frontend
+            id: uuidv4(),
             entityType: 'feature',
-            data: result.data,
+            data,
             status: 'open'
           }
-        })
+        });
       }
 
-      dispatch({ type: 'PUSH_CHAT', payload: { role: 'assistant', content: chatResponse } });
-
+      // 3c) Falls GPT Felder abgefragt hat
       if (eventDetected) {
-        // erstes fehlendes Feld ermitteln
         const missing = requiredFields[eventType].find(f => !data[f]);
         if (missing) {
           dispatch({
@@ -68,10 +72,11 @@ export default function ChatPage() {
           });
           setPendingEvent({ eventType, data, awaitField: missing });
         } else {
-          // gleich speichern
+          // sind alle Infos da? dann speichern
           await saveEvent(eventType, data);
         }
       }
+
     } catch (err) {
       console.error(err);
       dispatch({
@@ -81,7 +86,7 @@ export default function ChatPage() {
     }
   };
 
-  // Vorschlag in "suggestions" anlegen (nicht direkt in features)
+  // legt den Vorschlag in der suggestions-Tabelle an
   async function saveEvent(eventType, data) {
     const { error } = await supabase
       .from('suggestions')
@@ -107,6 +112,7 @@ export default function ChatPage() {
     }
   }
 
+  // File-Upload (bleibt unverändert)
   const upload = async (file) => {
     dispatch({ type: 'SET_UPLOAD', payload: file.name });
     try {
